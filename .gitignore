@@ -1,0 +1,14 @@
+# Compiled Java class files
+build/**/*.class
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo

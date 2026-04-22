@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Real Estate India - Find your dream property across India. Browse apartments, villas, and plots for rent and sale in Mumbai, Delhi, Bangalore, and more.">
+  <title>Real Estate India — Find Your Dream Property</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body>
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header class="header" id="header">
+    <div class="header-inner">
+      <a href="#home" class="logo" onclick="scrollToSection('home')">
+        <div class="logo-icon">🏠</div>
+        <span>RealEstate<span style="color: var(--accent-light); font-weight: 400;">India</span></span>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <button class="nav-link active" onclick="scrollToSection('home')">Home</button>
+        <button class="nav-link" onclick="scrollToSection('properties')">Properties</button>
+        <button class="nav-link" onclick="scrollToSection('statistics')">Insights</button>
+        <button class="nav-link" onclick="openEMICalculator()">EMI Calculator</button>
+        <button class="nav-link" onclick="scrollToSection('contact')">Contact</button>
+      </nav>
+
+      <button class="mobile-toggle" id="mobileToggle">☰</button>
+    </div>
+  </header>
+
+  <!-- ══════════ HERO SECTION ══════════ -->
+  <section class="hero" id="home">
+    <h1>Find Your Dream<br><span>Property in India</span></h1>
+    <p>Discover the perfect home from our curated collection of premium properties across India's top cities</p>
+
+    <div class="search-container">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search by city, locality, or property name..." autocomplete="off">
+        <button class="search-btn" id="searchBtn">
+          🔍 Search
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="number" id="heroTotal">—</div>
+        <div class="label">Properties</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number" id="heroCities">—</div>
+        <div class="label">Cities</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number" id="heroRent">—</div>
+        <div class="label">For Rent</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ LISTING TYPE TABS ══════════ -->
+  <div class="listing-tabs" id="listingTabs">
+    <button class="listing-tab active" data-type="all" onclick="filterByListingType('all')">All Properties</button>
+    <button class="listing-tab" data-type="buy" onclick="filterByListingType('buy')">🏷️ Buy</button>
+    <button class="listing-tab" data-type="rent" onclick="filterByListingType('rent')">🔑 Rent</button>
+  </div>
+
+  <!-- ══════════ CITY CHIPS ══════════ -->
+  <div class="city-chips" id="cityChips">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- ══════════ MAIN CONTENT ══════════ -->
+  <main class="main-container" id="properties">
+    
+    <!-- Filter Toggle (mobile) -->
+    <button class="filter-toggle-btn" id="filterToggle">
+      🎛️ Filters
+    </button>
+
+    <div class="content-layout">
+      
+      <!-- ── Filter Sidebar ── -->
+      <aside class="filter-sidebar" id="filterSidebar">
+        <div class="filter-header">
+          <h3>🎛️ Filters</h3>
+          <button class="filter-clear" id="clearFilters">Clear All</button>
+        </div>
+
+        <div class="filter-group">
+          <label>City</label>
+          <select id="filterCity">
+            <option value="all">All Cities</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Property Type</label>
+          <select id="filterPropertyType">
+            <option value="all">All Types</option>
+            <option value="Apartment">Apartment</option>
+            <option value="Villa">Villa</option>
+            <option value="Plot">Plot</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>BHK Configuration</label>
+          <select id="filterBHK">
+            <option value="all">Any BHK</option>
+            <option value="1">1 BHK</option>
+            <option value="2">2 BHK</option>
+            <option value="3">3 BHK</option>
+            <option value="4">4 BHK</option>
+            <option value="5">5+ BHK</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Price Range (₹)</label>
+          <div class="price-inputs">
+            <input type="number" id="filterMinPrice" placeholder="Min">
+            <input type="number" id="filterMaxPrice" placeholder="Max">
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Furnishing</label>
+          <select id="filterFurnishing">
+            <option value="all">Any</option>
+            <option value="Fully Furnished">Fully Furnished</option>
+            <option value="Semi-Furnished">Semi-Furnished</option>
+            <option value="Unfurnished">Unfurnished</option>
+          </select>
+        </div>
+      </aside>
+
+      <!-- ── Property Results ── -->
+      <section>
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="results-count" id="resultsCount">Loading properties...</div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="sort-bar">
+              <label>Sort:</label>
+              <select id="sortSelect">
+                <option value="newest">Newest First</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+                <option value="area_desc">Area: Largest</option>
+                <option value="area_asc">Area: Smallest</option>
+              </select>
+            </div>
+            <div class="view-toggles">
+              <button class="view-btn active" data-view="grid" title="Grid View">▦</button>
+              <button class="view-btn" data-view="list" title="List View">☰</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Property Grid -->
+        <div class="property-grid" id="propertyGrid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ══════════ RECENTLY VIEWED ══════════ -->
+  <section class="recently-viewed" id="recentSection" style="display: none;">
+    <h3>🕐 Recently Viewed</h3>
+    <div class="recent-scroll" id="recentlyViewed"></div>
+  </section>
+
+  <!-- ══════════ STATISTICS SECTION ══════════ -->
+  <section class="stats-section" id="statistics">
+    <div class="section-title">
+      <h2>Market Insights</h2>
+      <p>Real estate trends and statistics across Indian cities</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="icon">🏠</div>
+        <div class="value" id="statTotal">—</div>
+        <div class="label">Total Properties</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🔑</div>
+        <div class="value" id="statRent">—</div>
+        <div class="label">For Rent</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🏷️</div>
+        <div class="value" id="statBuy">—</div>
+        <div class="label">For Sale</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🌆</div>
+        <div class="value" id="statCities">—</div>
+        <div class="label">Cities Covered</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 48px;">
+      <h2>Average Property Prices by City</h2>
+      <p>Comparing average buy prices across Indian cities</p>
+    </div>
+
+    <div class="city-bars" id="cityBars">
+      <!-- Populated by JS -->
+    </div>
+  </section>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer class="footer" id="contact">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo">
+          <div class="logo-icon">🏠</div>
+          <span>RealEstate<span style="color: var(--accent-light); font-weight: 400;">India</span></span>
+        </div>
+        <p>Your trusted platform for finding the perfect property across India. We connect buyers, sellers, and renters with their dream homes.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#" onclick="scrollToSection('home')">Home</a></li>
+          <li><a href="#" onclick="scrollToSection('properties')">Properties</a></li>
+          <li><a href="#" onclick="scrollToSection('statistics')">Insights</a></li>
+          <li><a href="#" onclick="openEMICalculator()">EMI Calculator</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Top Cities</h4>
+        <ul>
+          <li><a href="#" onclick="filterByCity('Mumbai')">Mumbai</a></li>
+          <li><a href="#" onclick="filterByCity('Delhi')">Delhi</a></li>
+          <li><a href="#" onclick="filterByCity('Bangalore')">Bangalore</a></li>
+          <li><a href="#" onclick="filterByCity('Hyderabad')">Hyderabad</a></li>
+          <li><a href="#" onclick="filterByCity('Pune')">Pune</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Contact Us</h4>
+        <ul>
+          <li><a href="#">📧 info@realestateindia.com</a></li>
+          <li><a href="#">📞 +91 98765 43210</a></li>
+          <li><a href="#">📍 Mumbai, Maharashtra</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 RealEstateIndia. All rights reserved. Built with ❤️ in India</p>
+    </div>
+  </footer>
+
+  <!-- ══════════ COMPARE BAR ══════════ -->
+  <div class="compare-bar" id="compareBar">
+    <div class="compare-items" id="compareItems"></div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-primary" onclick="openCompareModal()">⚖️ Compare Now</button>
+      <button class="btn-danger" onclick="state.compareList=[]; localStorage.removeItem('compareList'); renderCompareBar(); renderProperties();">Clear</button>
+    </div>
+  </div>
+
+  <!-- ══════════ MODALS ══════════ -->
+
+  <!-- Property Detail Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <!-- EMI Calculator Modal -->
+  <div class="modal-overlay" id="emiModal">
+    <div class="modal" style="max-width: 600px;">
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+      <div class="emi-calculator">
+        <h2>🧮 EMI Calculator</h2>
+        <p class="subtitle">Calculate your monthly EMI for home loans</p>
+
+        <div class="emi-form">
+          <div class="emi-field">
+            <label>Loan Amount (₹)</label>
+            <input type="number" id="emiLoanAmount" placeholder="e.g., 5000000" oninput="calculateEMI()">
+          </div>
+          <div class="emi-field">
+            <label>Interest Rate (% p.a.)</label>
+            <input type="number" id="emiInterest" placeholder="e.g., 8.5" step="0.1" oninput="calculateEMI()">
+          </div>
+          <div class="emi-field">
+            <label>Loan Tenure (Years)</label>
+            <input type="number" id="emiTenure" placeholder="e.g., 20" oninput="calculateEMI()">
+          </div>
+        </div>
+
+        <div id="emiResult" class="emi-result">
+          <p style="color: var(--text-muted);">Enter loan details to calculate EMI</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Modal -->
+  <div class="modal-overlay" id="compareModal">
+    <div class="modal wide">
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+      <div class="compare-table-container">
+        <h2>⚖️ Property Comparison</h2>
+        <div id="compareContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inquiry Modal -->
+  <div class="modal-overlay" id="inquiryModal">
+    <div class="modal" style="max-width: 600px;">
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+      <div class="inquiry-form">
+        <h2>📩 Contact Property Owner</h2>
+        <p class="subtitle">Regarding: <strong id="inquiryPropertyTitle"></strong></p>
+        <input type="hidden" id="inquiryPropertyId">
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Your Name *</label>
+            <input type="text" id="inquiryName" placeholder="John Doe">
+          </div>
+          <div class="form-field">
+            <label>Email *</label>
+            <input type="email" id="inquiryEmail" placeholder="john@example.com">
+          </div>
+          <div class="form-field">
+            <label>Phone</label>
+            <input type="tel" id="inquiryPhone" placeholder="+91 98765 43210">
+          </div>
+          <div class="form-field">
+            <label>Budget</label>
+            <input type="text" id="inquiryBudget" placeholder="e.g., ₹50 Lakh">
+          </div>
+          <div class="form-field full">
+            <label>Message</label>
+            <textarea id="inquiryMessage" placeholder="I'm interested in this property..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="submitInquiry()" style="width: 100%;">📩 Submit Inquiry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
