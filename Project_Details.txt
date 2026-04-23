@@ -1,0 +1,841 @@
+================================================================================
+          REAL ESTATE INDIA - COMPLETE PROJECT DOCUMENTATION
+================================================================================
+
+PROJECT TITLE: Real Estate India — Find Your Dream Property
+PROJECT TYPE:  Full-Stack Web Application (TNP Mini Project)
+DEVELOPER:     Sujal Bhosale
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+"Real Estate India" is a full-stack real estate property listing and browsing
+web application. It allows users to search, filter, sort, compare, and inquire
+about residential properties (Apartments, Villas, Plots) across major Indian
+cities. The application features a modern dark-themed UI with glassmorphism
+effects, micro-animations, and a fully responsive design.
+
+The backend is built entirely in Advanced Java using Java's built-in HTTP
+server (com.sun.net.httpserver.HttpServer) — NO external frameworks like
+Spring Boot, Tomcat, or any third-party libraries are used. The frontend is
+built with vanilla HTML, CSS, and JavaScript. Data is stored in a JSON file
+(no database required).
+
+The server runs locally on http://localhost:8080.
+
+================================================================================
+2. TECHNOLOGY STACK
+================================================================================
+
+BACKEND:
+  - Language:      Java (Advanced Java concepts)
+  - HTTP Server:   com.sun.net.httpserver.HttpServer (built-in JDK)
+  - Architecture:  REST API (JSON responses)
+  - Data Storage:  JSON file (properties.json)
+  - Design Pattern: Singleton (DAO classes), MVC-inspired layered architecture
+  - No external libraries/dependencies — pure Java
+
+FRONTEND:
+  - HTML5 (semantic markup, SEO meta tags)
+  - CSS3 (custom properties/variables, glassmorphism, gradients, animations,
+    responsive grid layout, media queries)
+  - Vanilla JavaScript (ES6+, async/await, Fetch API, DOM manipulation)
+  - Google Fonts (Inter font family)
+  - No frontend frameworks (no React, Angular, etc.)
+
+SEO & ACCESSIBILITY:
+  - <meta name="description"> tag with descriptive content
+  - <meta name="viewport"> for mobile responsiveness
+  - Descriptive <title> tag: "Real Estate India — Find Your Dream Property"
+  - Semantic HTML5 elements: <header>, <main>, <section>, <footer>, <nav>, <aside>
+  - Emoji favicon using inline SVG data URI
+  - Alt text on all images
+  - Unique IDs on all interactive elements
+
+BUILD & RUN:
+  - compile.bat — Compiles all Java source files to /build directory
+  - run.bat    — Starts the HTTP server on port 8080
+
+VERSION CONTROL:
+  - Git repository with .gitignore
+  - Ignored: build/**/*.class, IDE files (.idea, .vscode, *.iml),
+    OS files (Thumbs.db, Desktop.ini, .DS_Store)
+
+================================================================================
+3. PROJECT DIRECTORY STRUCTURE
+================================================================================
+
+Real estate Website/
+├── .gitignore
+├── compile.bat                 # Script to compile Java source files
+├── run.bat                     # Script to start the server
+├── data/
+│   └── properties.json         # Property dataset (56 properties, ~56KB)
+├── src/
+│   ├── server/
+│   │   └── PropertyServer.java # Main entry point, starts HTTP server
+│   ├── models/
+│   │   ├── Property.java       # Property data model (POJO)
+│   │   └── Inquiry.java        # Inquiry/contact form model
+│   ├── data/
+│   │   ├── PropertyDAO.java    # Data Access Object for properties
+│   │   └── InquiryDAO.java     # Data Access Object for inquiries
+│   ├── handlers/
+│   │   ├── PropertyHandler.java    # REST API handler for property endpoints
+│   │   ├── InquiryHandler.java     # REST API handler for inquiry endpoints
+│   │   └── StaticFileHandler.java  # Serves static files (HTML/CSS/JS)
+│   └── utils/
+│       └── JsonUtil.java       # Custom JSON parser & builder (no Gson/Jackson)
+├── web/
+│   ├── index.html              # Single-page application HTML
+│   ├── css/
+│   │   └── style.css           # Complete styling (~1850 lines, 35KB)
+│   └── js/
+│       └── app.js              # Application logic (~888 lines, 30KB)
+└── build/                      # Compiled .class files (generated)
+
+================================================================================
+4. BACKEND ARCHITECTURE (ADVANCED JAVA)
+================================================================================
+
+4.1 PropertyServer.java (Main Entry Point)
+--------------------------------------------------------------------------
+- Creates an HttpServer on port 8080
+- Loads property data from data/properties.json at startup
+- Registers 5 API endpoint contexts:
+    /api/properties  → PropertyHandler
+    /api/cities      → PropertyHandler
+    /api/statistics  → PropertyHandler
+    /api/inquiries   → InquiryHandler
+    /               → StaticFileHandler (serves web files)
+- Uses default executor (new thread per request)
+
+4.2 Property.java (Model)
+--------------------------------------------------------------------------
+Data model with 16 fields:
+  - id (String)           — Unique identifier (e.g., "MUM001", "DEL002")
+  - title (String)        — Property listing title
+  - city (String)         — City name (Mumbai, Delhi, Bangalore, etc.)
+  - state (String)        — State name (Maharashtra, Karnataka, etc.)
+  - locality (String)     — Specific area/neighborhood
+  - propertyType (String) — "Apartment", "Villa", or "Plot"
+  - listingType (String)  — "rent" or "buy"
+  - bhk (int)             — Number of bedrooms (1-5+, 0 for plots)
+  - price (long)          — Price in INR (rent=monthly, buy=total)
+  - area (int)            — Area in square feet
+  - description (String)  — Detailed property description
+  - amenities (List<String>) — List of amenities
+  - builderName (String)  — Builder/developer name
+  - status (String)       — "Ready to Move", "Under Construction", etc.
+  - furnishing (String)   — "Fully Furnished", "Semi-Furnished", "Unfurnished"
+  - postedDate (String)   — Listing date (YYYY-MM-DD)
+  - image (String)        — URL to property image (Unsplash)
+
+Methods: fromMap(), toMap(), toJson(), getters for all fields.
+
+4.3 Inquiry.java (Model)
+--------------------------------------------------------------------------
+Contact form data model with fields:
+  - id (String)           — Auto-generated (INQ-<timestamp>)
+  - propertyId (String)   — Associated property ID
+  - name (String)         — User's name
+  - email (String)        — User's email
+  - phone (String)        — User's phone number
+  - message (String)      — Inquiry message
+  - timestamp (String)    — Submission timestamp
+
+4.4 PropertyDAO.java (Data Access Object — Singleton)
+--------------------------------------------------------------------------
+Central data access layer implementing these operations:
+
+  a) loadFromFile(filePath) — Reads and parses properties.json into
+     List<Property> using custom JsonUtil parser
+
+  b) getAll() — Returns all properties
+
+  c) getById(id) — Returns a single property by its ID
+
+  d) search(source, keyword) — Full-text keyword search across:
+     title, city, locality, description, state, builderName
+
+  e) filterByListingType(source, type) — Filter by "rent" or "buy"
+
+  f) filterByCity(source, city) — Filter by city name
+
+  g) filterByPropertyType(source, type) — Filter by Apartment/Villa/Plot
+
+  h) filterByBHK(source, bhk) — Filter by BHK count (1-4 exact, 5+ range)
+
+  i) filterByPriceRange(source, min, max) — Filter by price range
+
+  j) filterByFurnishing(source, furnishing) — Filter by furnishing status
+
+  k) sort(source, sortBy) — Sort properties by:
+     - price_asc / price_desc
+     - area_asc / area_desc
+     - newest / oldest (by posted date)
+
+  l) getCitiesWithCounts() — Returns list of cities with property counts,
+     sorted by count descending
+
+  m) getStatistics() — Returns analytics data:
+     - Total property count
+     - Rent vs. buy count
+     - Count by property type (Apartment, Villa, Plot)
+     - Average price by city (buy listings only)
+     - Min/max price across all properties
+
+  n) paginate(source, page, size) — Server-side pagination
+
+4.5 InquiryDAO.java (Data Access Object — Singleton)
+--------------------------------------------------------------------------
+  - addInquiry(data) — Creates and stores a new inquiry (in-memory)
+  - getAll() — Returns all submitted inquiries
+  - getByPropertyId(propertyId) — Filter inquiries by property
+
+4.6 PropertyHandler.java (HTTP Request Handler)
+--------------------------------------------------------------------------
+Handles GET requests for property-related endpoints:
+
+  GET /api/properties
+    Query parameters: search, listingType, city, propertyType, bhk,
+    minPrice, maxPrice, furnishing, sort, page, size
+    Response: { total, page, size, totalPages, properties: [...] }
+
+  GET /api/properties/{id}
+    Response: Single property JSON object
+
+  GET /api/cities
+    Response: Array of { city, count, state }
+
+  GET /api/statistics
+    Response: { totalProperties, rentCount, buyCount,
+                propertyTypeCounts, avgPriceByCity, minPrice, maxPrice }
+
+Features: CORS headers, JSON content type, error handling with proper
+HTTP status codes (200, 404, 405, 500).
+
+4.7 InquiryHandler.java (HTTP Request Handler)
+--------------------------------------------------------------------------
+  POST /api/inquiries — Submit a new inquiry
+    Validates name and email (required fields)
+    Response: { success: true, message, inquiry: {...} }
+
+  GET /api/inquiries — Get all submitted inquiries
+    Response: Array of inquiry objects
+
+Features: CORS support, request body parsing, input validation.
+
+4.8 StaticFileHandler.java (Static File Server)
+--------------------------------------------------------------------------
+  - Serves HTML, CSS, JS, and image files from /web directory
+  - Defaults "/" to /index.html
+  - Security: Prevents directory traversal attacks
+  - Sets correct Content-Type for: .html, .css, .js, .json, .png,
+    .jpg, .jpeg, .gif, .svg, .ico, .webp
+  - Cache-Control: no-cache for development
+
+4.9 JsonUtil.java (Custom JSON Parser — No External Libraries)
+--------------------------------------------------------------------------
+A complete, hand-written JSON parser and builder:
+  - parseJsonArray(json) — Parses JSON arrays into List<Map>
+  - parseJsonObject(json) — Parses JSON objects into Map<String, Object>
+  - parseValue(value) — Handles strings, numbers, booleans, null, arrays, objects
+  - toJson(obj) — Converts Java objects to JSON strings
+  - parseQueryParams(query) — Parses URL query strings
+  - String escaping/unescaping for JSON safety
+  - URL decoding for query parameters
+
+This demonstrates understanding of data parsing, character-by-character
+tokenization, recursive descent parsing, and string manipulation.
+
+================================================================================
+5. FRONTEND FEATURES & FUNCTIONALITY
+================================================================================
+
+5.1 Hero Section with Search
+--------------------------------------------------------------------------
+  - Large hero banner with animated gradient background
+  - Full-text search bar with debounced input (400ms delay)
+  - Enter key and button-click search support
+  - Live statistics display: Total Properties, Cities, For Rent count
+
+5.2 Property Listing with Grid/List View
+--------------------------------------------------------------------------
+  - Property cards displayed in responsive grid (auto-fill, min 300px)
+  - Toggle between Grid view and List view
+  - Each card shows: image, price, title, location, BHK, area, status
+  - Badges for listing type (For Rent / For Sale) and property type
+  - Hover effects: card lift, image zoom, shadow
+  - Lazy loading images with fallback on error
+
+5.3 Advanced Filtering (Sidebar)
+--------------------------------------------------------------------------
+  - Filter by City (dynamic dropdown populated from API)
+  - Filter by Property Type (Apartment, Villa, Plot)
+  - Filter by BHK (1, 2, 3, 4, 5+)
+  - Filter by Price Range (min/max input with debounce)
+  - Filter by Furnishing (Fully Furnished, Semi-Furnished, Unfurnished)
+  - "Clear All" button to reset all filters
+  - Filters are applied via API query parameters (server-side filtering)
+
+5.4 Listing Type Tabs
+--------------------------------------------------------------------------
+  - Quick-switch tabs: All Properties | Buy | Rent
+  - Active state highlighting
+
+5.5 City Chips (Quick City Filter)
+--------------------------------------------------------------------------
+  - Horizontally scrollable city chips with property counts
+  - Click to filter properties by city
+  - Active state with accent color
+
+5.6 Sorting
+--------------------------------------------------------------------------
+  - Sort options: Newest First, Price Low→High, Price High→Low,
+    Area Largest, Area Smallest
+  - Server-side sorting via API
+
+5.7 Pagination
+--------------------------------------------------------------------------
+  - Server-side pagination (12 properties per page)
+  - Page buttons with ellipsis for large page counts
+  - Previous/Next navigation
+  - Smooth scroll to top on page change
+
+5.8 Property Detail Modal
+--------------------------------------------------------------------------
+  - Click any property card to open detailed view in modal
+  - Shows: full image, price, title, location (locality + city + state)
+  - Tags: listing type, property type, furnishing, posted date, status
+  - Specifications: BHK, area (sq.ft), price per sq.ft, builder name
+  - Full description text
+  - Amenities list with checkmarks
+  - Action buttons: Contact Owner, EMI Calculator (buy only),
+    Add to Favorites, Add to Compare
+
+5.9 EMI Calculator
+--------------------------------------------------------------------------
+  - Modal-based EMI calculator for home loan estimation
+  - Inputs: Loan Amount (₹), Interest Rate (% p.a.), Tenure (Years)
+  - Auto-populates 80% of property price when opened from detail view
+  - Default interest rate: 8.5%, default tenure: 20 years
+  - Real-time calculation using standard EMI formula:
+    EMI = P × r × (1+r)^n / ((1+r)^n - 1)
+  - Shows: Monthly EMI, Principal, Total Interest, Total Amount
+  - Indian currency formatting (Lakh/Crore)
+
+5.10 Property Comparison
+--------------------------------------------------------------------------
+  - Add up to 3 properties to comparison list
+  - Floating compare bar appears when properties are selected
+  - Side-by-side comparison table showing:
+    Image, Title, Price, Type, Location, BHK, Area, Property Type,
+    Furnishing, Status, Builder, Amenities
+  - Comparison data persisted in localStorage
+  - Clear all / remove individual properties
+
+5.11 Favorites (Wishlist)
+--------------------------------------------------------------------------
+  - Heart icon on each card to toggle favorite
+  - Favorites stored in localStorage (persists across sessions)
+  - Visual indicator (red heart) for favorited properties
+  - Toast notifications on add/remove
+
+5.12 Recently Viewed
+--------------------------------------------------------------------------
+  - Tracks last 10 viewed properties
+  - Horizontal scrollable section below main content
+  - Shows thumbnail, price, and title
+  - Click to re-open property detail
+  - Stored in localStorage
+
+5.13 Contact/Inquiry Form
+--------------------------------------------------------------------------
+  - Modal form to contact property owner
+  - Fields: Name*, Email*, Phone, Budget, Message
+  - Pre-filled message template
+  - Client-side validation (name, email required)
+  - Submits to POST /api/inquiries endpoint
+  - Success toast notification on submission
+
+5.14 Toast Notifications
+--------------------------------------------------------------------------
+  - Bottom-right corner toast messages
+  - Types: success (✅), error (❌), info (ℹ️)
+  - Auto-dismiss after 3 seconds with fade-out animation
+
+5.15 Responsive Design
+--------------------------------------------------------------------------
+  - Mobile hamburger menu toggle
+  - Collapsible filter sidebar (toggle button on mobile)
+  - Responsive grid adapts from 3 columns to single column
+  - Adaptive font sizes using clamp()
+  - Touch-friendly tap targets
+
+5.16 Skeleton Loading
+--------------------------------------------------------------------------
+  - Placeholder skeleton cards shown while API data loads
+  - Animated shimmer effect for loading state
+
+5.17 Navigation
+--------------------------------------------------------------------------
+  - Fixed header with glassmorphism effect (blur + transparency)
+  - Scroll-aware: darkens on scroll
+  - Smooth scroll to sections (Home, Properties, Insights, Contact)
+  - Active nav link highlighting
+
+================================================================================
+6. UI/UX DESIGN DETAILS
+================================================================================
+
+THEME:         Dark mode with purple accent (#6c5ce7)
+FONT:          Inter (Google Fonts) — weights 300-800
+COLOR PALETTE:
+  Background:  #0a0a0f (primary), #12121a (secondary), #1a1a25 (cards)
+  Accent:      #6c5ce7 (purple), #a29bfe (light purple)
+  Success:     #00cec9 (teal — used for "Rent" badges)
+  Text:        #f0f0f5 (primary), #a0a0b8 (secondary), #6b6b82 (muted)
+  Danger:      #ff6b6b (used for favorites)
+
+EFFECTS:
+  - Glassmorphism on header and badges (backdrop-filter: blur)
+  - Gradient backgrounds (radial gradient ambient animation)
+  - Card hover: translateY(-4px) + box-shadow + image scale(1.05)
+  - Custom scrollbar styling (6px width, accent color on hover)
+  - Smooth transitions using cubic-bezier(0.4, 0, 0.2, 1) easing
+
+CSS ANIMATIONS (6 total):
+  - bgShift       — 20s ambient background gradient movement
+  - heroPulse     — 4s pulsing glow effect behind hero text
+  - fadeIn        — 0.2s modal overlay fade-in
+  - slideUp       — 0.3s modal content slide-up entrance
+  - slideInRight  — 0.3s toast notification slide-in from right
+  - shimmer       — 1.5s skeleton loading shimmer sweep
+
+RESPONSIVE BREAKPOINTS (3 levels):
+  @media (max-width: 1024px) — Tablet:
+    - Filter sidebar collapses (hidden, toggle button shown)
+    - Content layout switches to single column
+    - Stats grid becomes 2 columns
+    - Footer grid becomes 2 columns
+
+  @media (max-width: 768px) — Mobile:
+    - Header shrinks to 60px, hamburger menu appears
+    - Nav links become vertical dropdown
+    - Hero text shrinks, search bar stacks vertically
+    - Property grid becomes single column
+    - List view card layout stacks vertically
+    - EMI form, inquiry form become single column
+    - Compare bar stacks vertically
+    - Modal detail image height reduces to 220px
+    - Footer becomes single column
+
+  @media (max-width: 480px) — Small Mobile:
+    - Hero stats stack vertically
+    - Listing tabs wrap
+    - City chips become horizontally scrollable (no wrap)
+    - Stats grid becomes single column
+
+CSS FILE STRUCTURE (1849 lines total):
+  - Design System & Variables (lines 1-55)
+  - Reset & Base Styles (lines 57-101)
+  - Background Animation (lines 103-121)
+  - Header & Navigation (lines 123-207)
+  - Hero Section & Search Bar (lines 209-338)
+  - Listing Type Tabs (lines 340-371)
+  - City Chips (lines 373-414)
+  - Main Layout & Filter Sidebar (lines 416-519)
+  - Toolbar & Sort Bar (lines 521-592)
+  - Property Cards Grid (lines 594-774)
+  - Pagination (lines 776-816)
+  - Modals (Detail, EMI, Compare, Inquiry) (lines 818-1309)
+  - Statistics Section & Bar Charts (lines 1311-1423)
+  - Recently Viewed Section (lines 1425-1491)
+  - Footer (lines 1493-1555)
+  - Toast Notifications (lines 1557-1604)
+  - Skeleton Loading & Empty State (lines 1606-1658)
+  - Responsive Media Queries (lines 1660-1822)
+  - Filter Toggle Button (lines 1824-1849)
+
+BUTTON STYLES (3 variants):
+  - btn-primary  — Purple gradient, hover lift + glow shadow
+  - btn-secondary — Elevated background, hover border accent
+  - btn-danger   — Red tint, hover fills red
+
+================================================================================
+7. PROPERTY DATA (properties.json)
+================================================================================
+
+The dataset contains 56 real estate property listings across 19 Indian cities:
+
+CITIES COVERED (19 cities, 12 states/UTs):
+  1.  Mumbai (Maharashtra)        — 7 properties (MUM001-MUM007)
+  2.  Delhi (Delhi)               — 6 properties (DEL001-DEL006)
+  3.  Bangalore (Karnataka)       — 6 properties (BLR001-BLR006)
+  4.  Hyderabad (Telangana)       — 5 properties (HYD001-HYD005)
+  5.  Chennai (Tamil Nadu)        — 6 properties (CHN001-CHN006)
+  6.  Pune (Maharashtra)          — 6 properties (PUN001-PUN006)
+  7.  Kolkata (West Bengal)       — 5 properties (KOL001-KOL005)
+  8.  Ahmedabad (Gujarat)         — 5 properties (AMD001-AMD005)
+  9.  Jaipur (Rajasthan)          — 5 properties (JAI001-JAI005)
+  10. Lucknow (Uttar Pradesh)     — 5 properties (LKO001-LKO005)
+  11. Goa (Goa)                   — 4 properties (GOA001-GOA004)
+  12. Chandigarh (Chandigarh/Haryana) — 3 properties (CHD001-CHD003)
+  13. Gurugram (Haryana)          — 3 properties (GUR001-GUR003)
+  14. Noida (Uttar Pradesh)       — 3 properties (NOI001-NOI003)
+  15. Kochi (Kerala)              — 3 properties (KOC001-KOC003)
+  16. Indore (Madhya Pradesh)     — 3 properties (IND001-IND003)
+  17. Nagpur (Maharashtra)        — 2 properties (NAG001-NAG002)
+  18. Varanasi (Uttar Pradesh)    — 2 properties (VNS001-VNS002)
+  19. Coimbatore (Tamil Nadu)     — 2 properties (COI001-COI002)
+
+PROPERTY TYPES: Apartments, Villas, Plots
+LISTING TYPES:  Buy (sale) and Rent
+BHK RANGE:      1 BHK to 5+ BHK (0 for plots)
+PRICE RANGE:    ₹7,000/month (rent) to ₹25 Crore (buy)
+AREA RANGE:     400 sq.ft to 8,000 sq.ft
+
+PROPERTY STATUS VALUES:
+  - Ready to Move
+  - Under Construction
+  - Newly Built
+  - Available (for plots)
+
+FURNISHING STATUS VALUES:
+  - Fully Furnished
+  - Semi-Furnished
+  - Unfurnished
+  - N/A (for plots)
+
+BUILDERS/DEVELOPERS FEATURED (30+):
+  Major Builders: Lodha Group, DLF, Prestige Group, Godrej Properties,
+  Oberoi Realty, Sobha Ltd, Brigade Group, Tata Housing, Panchshil Realty,
+  Kolte Patil, Adani Realty, Puravankara, Casagrand, Mahima Group,
+  Aparna Constructions, Eldeco Group, ATS Group, Jaypee Group,
+  PS Group, Ambuja Neotia, Sun Builders, Confident Group, Skyline Builders,
+  Omaxe Group, Radiance Realty, TVS Emerald, and many Individual sellers.
+
+AMENITIES INCLUDED (40+ unique amenities across properties):
+  Swimming Pool, Gym, Clubhouse, 24x7 Security, Power Backup, Parking,
+  Garden, Jogging Track, Children Play Area, Home Theater, Wine Cellar,
+  Smart Home, Concierge, Valet Parking, Private Pool, Terrace, Staff
+  Quarters, CCTV, Solar Panels, Bore Well, Tennis Court, Indoor Games,
+  Golf Course Access, BBQ Area, Wi-Fi, Balcony, Courtyard, etc.
+
+Each property includes realistic details with proper Indian locality names,
+and high-quality Unsplash property/real-estate images.
+
+================================================================================
+8. API ENDPOINTS SUMMARY
+================================================================================
+
+METHOD  ENDPOINT               DESCRIPTION
+------  ---------------------  ------------------------------------------------
+GET     /api/properties        List properties with search/filter/sort/pagination
+GET     /api/properties/{id}   Get single property details by ID
+GET     /api/cities            Get list of cities with property counts
+GET     /api/statistics        Get market statistics and analytics
+POST    /api/inquiries         Submit a contact inquiry
+GET     /api/inquiries         Get all submitted inquiries
+GET     /                     Serve static web files (HTML, CSS, JS)
+
+Query Parameters for /api/properties:
+  - search       : keyword search
+  - listingType  : "rent" | "buy" | "all"
+  - city         : city name
+  - propertyType : "Apartment" | "Villa" | "Plot"
+  - bhk          : 1-5
+  - minPrice     : minimum price
+  - maxPrice     : maximum price
+  - furnishing   : "Fully Furnished" | "Semi-Furnished" | "Unfurnished"
+  - sort         : "price_asc" | "price_desc" | "area_asc" | "area_desc" |
+                   "newest" | "oldest"
+  - page         : page number (default: 1)
+  - size         : items per page (default: 12)
+
+================================================================================
+9. ADVANCED JAVA CONCEPTS USED
+================================================================================
+
+1.  HttpServer API (com.sun.net.httpserver) — Built-in HTTP server
+2.  HttpHandler interface — Request handling
+3.  Singleton Design Pattern — DAO classes
+4.  Generics — List<Property>, Map<String, Object>, etc.
+5.  Collections Framework — ArrayList, LinkedHashMap, HashMap
+6.  Lambda Expressions — Comparators for sorting
+7.  Streams & Functional Interfaces — merge(), computeIfAbsent()
+8.  File I/O (NIO) — Files.readAllBytes(), Paths.get()
+9.  String Manipulation — Custom JSON parser
+10. Exception Handling — try-catch, checked/unchecked exceptions
+11. URL Encoding/Decoding — java.net.URLDecoder
+12. Date Formatting — SimpleDateFormat
+13. Enumerations & Type Casting — Number, Boolean, List<?> handling
+14. Multi-threaded request handling (HttpServer default executor)
+15. REST API design principles — proper HTTP methods, status codes, JSON
+
+================================================================================
+10. HOW TO RUN THE PROJECT
+================================================================================
+
+PREREQUISITES:
+  - Java JDK 11 or higher installed
+  - JAVA_HOME and PATH configured
+
+STEPS:
+  1. Open Command Prompt in project root directory
+  2. Run: compile.bat     (compiles all Java files to /build)
+  3. Run: run.bat         (starts server on localhost:8080)
+  4. Open browser: http://localhost:8080
+
+MANUAL COMMANDS:
+  Compile:  javac -d build -sourcepath src src\server\PropertyServer.java
+  Run:      java -cp build server.PropertyServer
+
+================================================================================
+11. KEY FEATURES SUMMARY (12+ Features)
+================================================================================
+
+ #   FEATURE                        DESCRIPTION
+---  ----------------------------   -----------------------------------------------
+ 1   Property Search                Full-text search with debouncing
+ 2   Advanced Filtering             6 filter types (city, type, BHK, price, etc.)
+ 3   Sorting                        6 sort options (price, area, date)
+ 4   Pagination                     Server-side with navigation controls
+ 5   Property Detail View           Modal with full property information
+ 6   EMI Calculator                 Real-time home loan EMI computation
+ 7   Property Comparison            Side-by-side compare up to 3 properties
+ 8   Favorites/Wishlist             Save properties with localStorage persistence
+ 9   Recently Viewed                Tracks last 10 viewed properties
+10   Contact/Inquiry System         Submit inquiries via REST API
+11   Statistics Dashboard           Market insights with visual bar charts
+12   Grid/List View Toggle          Switch between grid and list layouts
+13   City Quick Filters             Chip-based city filtering with counts
+14   Listing Type Tabs              Quick Buy/Rent/All toggle
+15   Responsive Design              Mobile-first with adaptive layouts
+16   Dark Theme UI                  Modern glassmorphism dark design
+17   Toast Notifications            User feedback messages
+18   Skeleton Loading               Loading placeholder animations
+
+================================================================================
+12. JAVASCRIPT FILE STRUCTURE (app.js — 888 lines)
+================================================================================
+
+The frontend JavaScript is organized into clear sections:
+
+  SECTION                              LINES      FUNCTIONS
+  -----------------------------------  ---------  ----------------------------------
+  State Management & Constants         1-33       state object with all app state
+  Initialization (DOMContentLoaded)    36-44      initHeader, loadCities, etc.
+  API Call Helpers                     46-75      fetchAPI(), postAPI()
+  Data Loading                         77-129     loadProperties, loadCities,
+                                                  loadStatistics
+  Render Functions                     131-257    renderProperties, renderSkeletons,
+                                                  renderCityChips, renderCityFilter,
+                                                  renderPagination, updateResultsCount,
+                                                  updateHeroStats
+  Statistics Rendering                 270-304    renderStatistics (bar chart)
+  Filters & Search                     306-505    initEventListeners, applyFilters,
+                                                  clearFilters, filterByListingType,
+                                                  filterByCity, goToPage
+  Property Detail Modal                507-569    openPropertyDetail
+  EMI Calculator                       571-620    openEMICalculator, calculateEMI
+  Favorites System                     622-637    toggleFavorite
+  Comparison System                    639-724    toggleCompare, renderCompareBar,
+                                                  openCompareModal
+  Recently Viewed                      726-768    addToRecentlyViewed,
+                                                  renderRecentlyViewed
+  Inquiry Form                         770-804    openInquiryForm, submitInquiry
+  Modal Helpers                        806-818    openModal, closeAllModals
+  Header & Navigation                  820-849    initHeader, scrollToSection
+  Utility Functions                    851-888    formatPrice, formatDate, showToast
+
+APPLICATION STATE OBJECT:
+  The entire app state is managed via a single "state" object containing:
+  - properties[]     — Current page's property list from API
+  - cities[]         — All cities with counts
+  - statistics{}     — Market statistics data
+  - total, page, totalPages, size — Pagination state
+  - filters{}        — All active filter values (search, listingType,
+                       city, propertyType, bhk, minPrice, maxPrice,
+                       furnishing, sort)
+  - favorites[]      — Favorited property IDs (from localStorage)
+  - compareList[]    — Comparison property IDs (from localStorage)
+  - recentlyViewed[] — Recently viewed properties (from localStorage)
+  - viewMode         — 'grid' or 'list'
+  - loading          — Boolean loading state
+
+================================================================================
+13. STATISTICS DASHBOARD VISUALIZATION
+================================================================================
+
+The Market Insights section displays two types of visualizations:
+
+  a) STAT CARDS (4 cards in a grid):
+     - 🏠 Total Properties (count)
+     - 🔑 For Rent (count)
+     - 🏷️ For Sale (count)
+     - 🌆 Cities Covered (count)
+     Each card has hover effect (translateY + accent border).
+
+  b) CITY PRICE BAR CHART:
+     - Horizontal bar chart showing average property prices per city
+     - Only buy-listing prices are used (not rent)
+     - Bars are proportional (highest price = 100% width)
+     - Each bar shows city name (left), gradient bar, and price label
+     - Bar color: linear-gradient from accent to accent-light
+     - Animated width transition (1s ease)
+     - Sorted by average price descending
+
+================================================================================
+14. CLIENT-SIDE DATA PERSISTENCE (localStorage)
+================================================================================
+
+The application uses browser localStorage to persist user data across sessions:
+
+  KEY               DATA STORED                    PURPOSE
+  ---------------   ----------------------------   ----------------------------
+  favorites         Array of property IDs          Wishlist/saved properties
+  compareList       Array of property IDs          Properties selected for compare
+  recentlyViewed    Array of property objects       Last 10 viewed properties
+                    (id, title, price, listingType, image)
+
+All three are loaded on app initialization and saved on every change.
+
+================================================================================
+13. INDIAN CURRENCY FORMATTING
+================================================================================
+
+The formatPrice() utility function formats prices in Indian notation:
+  - >= 1,00,00,000 (1 Crore)  → "₹X.XX Cr"  (e.g., ₹4.50 Cr)
+  - >= 1,00,000 (1 Lakh)      → "₹X.XX L"   (e.g., ₹22.00 L)
+  - >= 1,000                   → "₹X.XK"     (e.g., ₹35.0K)
+  - < 1,000                    → "₹X"        (with Indian locale)
+
+The formatDate() utility formats dates using Indian locale:
+  "2026-04-10" → "10 Apr 2026"
+
+================================================================================
+14. FOOTER SECTION
+================================================================================
+
+The footer is divided into 4 columns:
+  1. Brand Column  — Logo, tagline, and description
+  2. Quick Links   — Home, Properties, Insights, EMI Calculator
+  3. Top Cities    — Mumbai, Delhi, Bangalore, Hyderabad, Pune
+                     (clickable — filters properties by city)
+  4. Contact Us    — Email, Phone, Address
+
+Footer bottom bar: "© 2026 RealEstateIndia. All rights reserved."
+
+================================================================================
+15. SOURCE CODE METRICS
+================================================================================
+
+FILE                         LINES    SIZE      LANGUAGE
+---------------------------  ------   -------   ----------
+PropertyServer.java            73     3.4 KB    Java
+Property.java                 120     4.2 KB    Java
+Inquiry.java                   68     2.2 KB    Java
+PropertyDAO.java              305    10.4 KB    Java
+InquiryDAO.java                56     1.4 KB    Java
+PropertyHandler.java          155     5.8 KB    Java
+InquiryHandler.java           104     3.6 KB    Java
+StaticFileHandler.java         73     2.6 KB    Java
+JsonUtil.java                 289     8.9 KB    Java
+index.html                    370    14.2 KB    HTML
+style.css                    1849    35.7 KB    CSS
+app.js                        888    30.4 KB    JavaScript
+properties.json              1542    56.1 KB    JSON
+---------------------------  ------   -------
+TOTAL                        5892   178.9 KB
+
+Total Java Backend:     1243 lines across 9 files (41.7 KB)
+Total Frontend:         3107 lines across 3 files (80.3 KB)
+Total Data:             1542 lines, 1 file (56.1 KB)
+
+================================================================================
+16. MODAL SYSTEM ARCHITECTURE
+================================================================================
+
+The application uses 4 overlay modals, all sharing a common pattern:
+
+  MODAL             TRIGGER                          MAX-WIDTH
+  ----------------  ----------------------------     ---------
+  detailModal       Click any property card           800px
+  emiModal          Click "EMI Calculator" nav/btn    600px
+  compareModal      Click "Compare Now" button        1100px (wide)
+  inquiryModal      Click "Contact Owner" button      600px
+
+Modal behavior:
+  - Overlay click closes modal
+  - Escape key closes all modals
+  - Body scroll is locked when modal is open
+  - Each modal has a ✕ close button
+  - Animated entrance (slideUp + fadeIn)
+  - Backdrop blur effect on overlay
+
+================================================================================
+17. ERROR HANDLING & EDGE CASES
+================================================================================
+
+BACKEND:
+  - 200 OK for successful responses
+  - 201 Created for new inquiry submissions
+  - 400 Bad Request for missing required fields (name, email)
+  - 404 Not Found for invalid property IDs or endpoints
+  - 405 Method Not Allowed for wrong HTTP methods
+  - 500 Internal Server Error with error message for exceptions
+  - CORS headers on all API responses (Access-Control-Allow-Origin: *)
+  - OPTIONS preflight request handling
+
+FRONTEND:
+  - Image fallback: onerror loads a default Unsplash property image
+  - Empty state: "No properties found" message with icon when filters
+    return zero results
+  - API error: Toast notification "Failed to connect to server"
+  - Form validation: Checks name and email before submission
+  - Compare limit: Max 3 properties with error toast if exceeded
+  - Pagination guard: Prevents going below page 1 or above total pages
+  - Debounced search input (400ms) to avoid excessive API calls
+  - Debounced price filter inputs (600ms)
+
+================================================================================
+18. SCROLL & NAVIGATION FEATURES
+================================================================================
+
+  - scroll-behavior: smooth (CSS level)
+  - scrollIntoView({ behavior: 'smooth', block: 'start' }) (JS level)
+  - scroll-margin-top: 80px on section IDs (accounts for fixed header)
+  - Header scroll detection: adds 'scrolled' class when scrollY > 50
+  - Pagination scrolls to #properties section on page change
+  - scroll-snap-type: x mandatory on recently viewed carousel
+  - scroll-snap-align: start on each recent card
+
+================================================================================
+19. CONCLUSION
+================================================================================
+
+This project demonstrates a complete full-stack web application built with
+Advanced Java (backend) and HTML/CSS/JavaScript (frontend). It showcases:
+
+  - REST API design with proper HTTP methods and status codes
+  - Custom JSON parsing without any external libraries (no Gson, Jackson)
+  - Server-side data processing: search, filter (6 types), sort, paginate
+  - Singleton design pattern for data access layer
+  - Modern, responsive, dark-themed frontend with glassmorphism effects
+  - Client-side state management with localStorage persistence
+  - Rich interactivity: EMI calculator, property comparison, favorites,
+    recently viewed tracking, contact inquiry system
+  - Indian-specific features: INR currency formatting (Lakh/Crore),
+    Indian cities & localities, BHK configuration
+  - Professional UI/UX: skeleton loading, toast notifications,
+    smooth animations, responsive breakpoints, empty states
+
+All achieved WITHOUT any third-party frameworks or libraries — pure Java
+backend and vanilla HTML/CSS/JS frontend.
+
+================================================================================
+                         END OF PROJECT DOCUMENTATION
+================================================================================
